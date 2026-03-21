@@ -1,0 +1,174 @@
+# Instincts generated from https://github.com/ohdaveed/photo-timestamp-app
+# Generated: 2026-03-21T13:11:26.068Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: photo-timestamp-app-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Commit Length
+
+## Action
+
+Write moderate-length commit messages (~59 characters)
+
+## Evidence
+
+- Average commit message length: 59 chars
+- Based on 11 commits
+
+---
+id: photo-timestamp-app-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: photo-timestamp-app-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: photo-timestamp-app-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: photo-timestamp-app-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: 
+
+---
+id: photo-timestamp-app-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: photo-timestamp-app-workflow-update-features-list
+trigger: "when doing update features list"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Workflow Update Features List
+
+## Action
+
+Follow the update-features-list workflow:
+1. Edit FEATURES.md to add or update feature proposals.
+2. Commit the changes.
+3. Optionally, merge via pull request.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: FEATURES.md
+
+---
+id: photo-timestamp-app-workflow-add-or-update-project-documentation
+trigger: "when doing add or update project documentation"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/ohdaveed/photo-timestamp-app
+---
+
+# Photo Timestamp App Workflow Add Or Update Project Documentation
+
+## Action
+
+Follow the add-or-update-project-documentation workflow:
+1. Edit or create the documentation file (e.g., README.md, SECURITY.md).
+2. Commit the changes.
+3. Optionally, merge via pull request.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: README.md, SECURITY.md
+
