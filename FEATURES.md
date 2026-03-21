@@ -104,8 +104,8 @@ Provide a comprehensive EXIF data viewer showing all available metadata, along w
   - "Full Preservation": Keep everything
 
 ### Technical Implementation
-- Enhance `exifr` usage to extract all available fields
-- Add EXIF writing capability (using exifr or similar library)
+- Enhance `exifr` usage to extract all available fields (read-only EXIF parsing)
+- Add EXIF writing capability using a dedicated EXIF-writing library (separate from `exifr`)
 - Create detailed metadata viewer component with tabbed interface
 - Implement EXIF preservation options in export pipeline
 - Add EXIF editing modal with form validation
