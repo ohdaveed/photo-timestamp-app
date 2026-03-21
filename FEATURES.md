@@ -143,7 +143,7 @@ Provide a comprehensive EXIF data viewer showing all available metadata, along w
 - Clear error handling and user feedback
 
 ### Potential Libraries/Dependencies
-- **EXIF Writing**: `piexifjs` or `exif-js` for EXIF manipulation
+- **EXIF Writing**: piexifjs for EXIF manipulation
 - **Image Processing**: Enhance existing Canvas API usage
 - **UI Components**: Extend existing Radix UI components
 - **File Handling**: Leverage existing `file-saver` and `JSZip`
