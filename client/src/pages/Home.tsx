@@ -1,5 +1,5 @@
 /**
- * Home Page — "Precision Lens" Photo Timestamp Overlay
+ * Home Page — "Precision Lens" LocalStamp
  * 
  * Design: Clean technical photography tool aesthetic
  * - DM Sans + JetBrains Mono typography
@@ -49,10 +49,10 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">
-                Photo Timestamp
+                LocalStamp
               </h1>
               <p className="text-[10px] font-mono text-muted-foreground leading-tight">
-                EXIF Metadata Overlay Tool
+                Add time & location to your photos
               </p>
             </div>
           </div>
@@ -101,8 +101,8 @@ export default function Home() {
                 </h2>
 
                 <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-lg leading-relaxed">
-                  Upload photos, automatically read EXIF metadata and GPS coordinates, 
-                  and overlay formatted timestamps. Download all processed images instantly.
+                  Drop in your photos to automatically read the date, time, and GPS details.
+                  Add clean, readable stamps in seconds, then download everything at once.
                 </p>
 
                 {/* Feature pills */}
@@ -128,6 +128,16 @@ export default function Home() {
 
         {/* Main workspace */}
         <section className="container py-8 space-y-6">
+          {/* Privacy notice */}
+          <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-start gap-2.5">
+              <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-sm sm:text-[15px] font-medium text-foreground leading-relaxed">
+                Photos are processed entirely in your browser. Nothing is uploaded to any server.
+              </p>
+            </div>
+          </div>
+
           {/* Upload zone */}
           <UploadZone
             onFiles={addPhotos}
@@ -213,6 +223,30 @@ export default function Home() {
             </motion.div>
           )}
 
+          {/* EXIF explainer — shown only in empty state */}
+          {!hasPhotos && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.45 }}
+              className="max-w-3xl mx-auto"
+            >
+              <div className="rounded-xl border bg-card p-5 sm:p-6">
+                <p className="text-[11px] uppercase tracking-widest text-primary font-mono mb-2">
+                  EXIF 101
+                </p>
+                <h4 className="text-base sm:text-lg font-semibold text-foreground mb-2">
+                  What is EXIF metadata?
+                </h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  EXIF metadata is information saved by your camera when a photo is taken—such as date,
+                  time, camera settings, and sometimes GPS coordinates. This app reads that metadata to
+                  place accurate time and location stamps on your photos.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           {/* Photo grid */}
           <PhotoGrid
             photos={photos}
@@ -230,12 +264,9 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-6 mt-auto">
-        <div className="container flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
-            Photos are processed entirely in your browser. Nothing is uploaded to any server.
-          </p>
+        <div className="container flex items-center justify-center sm:justify-end gap-3">
           <p className="text-xs text-muted-foreground font-mono">
-            Powered by EXIF.js & OpenStreetMap Nominatim
+            Powered by EXIF.js & OpenStreetMap Nominatim · © Arrizon.Dev 2026
           </p>
         </div>
       </footer>
