@@ -3,7 +3,7 @@
  * Upload → EXIF read → GPS reverse geocode → Canvas stamp → Ready to download
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_STAMP_OPTIONS,
   downloadAllAsZip,
@@ -75,6 +75,24 @@ export function usePhotoProcessor() {
     [updatePhoto]
   );
 
+  /** Process a photo that already has metadata (skip EXIF read + geocode) */
+  const stampOnly = useCallback(
+    async (photo: ProcessedPhoto, metadata: ProcessedPhoto["metadata"], options: StampOptions) => {
+      try {
+        updatePhoto(photo.id, { status: "stamping", metadata });
+        const processedBlob = await stampPhoto(photo.originalFile, metadata, options);
+        const processedUrl = URL.createObjectURL(processedBlob);
+        updatePhoto(photo.id, { status: "done", processedBlob, processedUrl, metadata });
+      } catch (err) {
+        updatePhoto(photo.id, {
+          status: "error",
+          error: err instanceof Error ? err.message : "Processing failed",
+        });
+      }
+    },
+    [updatePhoto]
+  );
+
   const addPhotos = useCallback(
     async (files: File[]) => {
       const imageFiles = files.filter((f) => f.type.startsWith("image/"));
@@ -102,14 +120,43 @@ export function usePhotoProcessor() {
       setPhotos((prev) => [...prev, ...newPhotos]);
       setIsProcessing(true);
 
-      // Process sequentially to respect Nominatim rate limits
-      for (const photo of newPhotos) {
-        await processPhoto(photo, stampOptions);
-      }
+      // Step 1: Read EXIF for all photos in parallel
+      const metadataResults = await Promise.all(
+        newPhotos.map(async (photo) => {
+          updatePhoto(photo.id, { status: "reading" });
+          const metadata = await readExifData(photo.originalFile);
+          updatePhoto(photo.id, { metadata });
+          return { photo, metadata };
+        })
+      );
 
+      // Step 2: Split into GPS (needs sequential geocoding) and non-GPS (can parallelize)
+      const withGps = metadataResults.filter(
+        ({ metadata }) => metadata.latitude != null && metadata.longitude != null
+      );
+      const withoutGps = metadataResults.filter(
+        ({ metadata }) => metadata.latitude == null || metadata.longitude == null
+      );
+
+      // Process non-GPS photos in parallel (just stamping)
+      const nonGpsPromise = Promise.all(
+        withoutGps.map(({ photo, metadata }) => stampOnly(photo, metadata, stampOptions))
+      );
+
+      // Process GPS photos sequentially (geocoding respects Nominatim rate limits)
+      const gpsPromise = (async () => {
+        for (const { photo, metadata } of withGps) {
+          updatePhoto(photo.id, { status: "geocoding" });
+          const locationName = await reverseGeocode(metadata.latitude!, metadata.longitude!);
+          metadata.locationName = locationName;
+          await stampOnly(photo, metadata, stampOptions);
+        }
+      })();
+
+      await Promise.all([nonGpsPromise, gpsPromise]);
       setIsProcessing(false);
     },
-    [processPhoto, stampOptions]
+    [updatePhoto, stampOnly, stampOptions]
   );
 
   const reprocessAll = useCallback(async () => {
@@ -140,6 +187,35 @@ export function usePhotoProcessor() {
 
     setIsProcessing(false);
   }, [processPhoto, stampOptions]);
+
+  // Auto-reprocess when stamp options change (debounced)
+  const hasProcessedOnce = useRef(false);
+  const optionsChangeCount = useRef(0);
+  useEffect(() => {
+    // Track that we've done at least one full process
+    if (photos.length > 0 && photos.some((p) => p.status === "done")) {
+      hasProcessedOnce.current = true;
+    }
+  }, [photos]);
+
+  useEffect(() => {
+    // Skip auto-reprocess if no photos have been processed yet
+    if (!hasProcessedOnce.current) return;
+    if (isProcessing) return;
+
+    // Increment counter to detect stale timeouts
+    optionsChangeCount.current += 1;
+    const currentChange = optionsChangeCount.current;
+
+    const timer = setTimeout(() => {
+      if (currentChange === optionsChangeCount.current) {
+        reprocessAll();
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stampOptions]);
 
   const removePhoto = useCallback((id: string) => {
     setPhotos((prev) => {

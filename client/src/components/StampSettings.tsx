@@ -21,19 +21,15 @@ import { useState } from "react";
 interface StampSettingsProps {
   options: StampOptions;
   onChange: (options: StampOptions) => void;
-  onReprocess: () => void;
-  hasPhotos: boolean;
   isProcessing: boolean;
 }
 
 export default function StampSettings({
   options,
   onChange,
-  onReprocess,
-  hasPhotos,
   isProcessing,
 }: StampSettingsProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   const update = (partial: Partial<StampOptions>) => {
     onChange({ ...options, ...partial });
@@ -214,30 +210,14 @@ export default function StampSettings({
                 </div>
               </div>
 
-              {/* Reprocess button */}
-              {hasPhotos && (
-                <button
-                  onClick={onReprocess}
-                  disabled={isProcessing}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 12a9 9 0 11-6.219-8.56" />
-                      </svg>
-                      Reprocessing...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M1 4v6h6M23 20v-6h-6" />
-                        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
-                      </svg>
-                      Apply Changes
-                    </>
-                  )}
-                </button>
+              {/* Auto-reprocess indicator */}
+              {isProcessing && (
+                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                  <svg className="w-3.5 h-3.5 animate-spin text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56" />
+                  </svg>
+                  Applying changes...
+                </div>
               )}
             </div>
           </motion.div>

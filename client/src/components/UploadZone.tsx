@@ -96,13 +96,22 @@ export default function UploadZone({ onFiles, isProcessing, hasPhotos }: UploadZ
       className="w-full"
     >
       <div
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={`
           relative group rounded-xl border-2 border-dashed cursor-pointer
           transition-all duration-300 ease-out overflow-hidden
+          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring
           ${isDragging
             ? "border-primary bg-primary/5 scale-[1.01]"
             : "border-border hover:border-primary/40"
@@ -150,12 +159,6 @@ export default function UploadZone({ onFiles, isProcessing, hasPhotos }: UploadZ
                   <p className="text-sm text-muted-foreground mt-1">
                     Supports JPEG, PNG, HEIC, and other image formats with EXIF data
                   </p>
-                </div>
-                <div className="flex items-center gap-2 mt-2 px-4 py-2 rounded-full bg-muted/60 text-xs text-muted-foreground font-mono">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                  All processing happens locally — your photos never leave your device
                 </div>
               </motion.div>
             )}
