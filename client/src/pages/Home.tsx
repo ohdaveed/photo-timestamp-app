@@ -1,5 +1,5 @@
 /**
- * Home Page — "Precision Lens" LocalStamp
+ * Home Page — "Precision Lens" LocalStamp.co
  *
  * Design: Clean technical photography tool aesthetic
  * - DM Sans + JetBrains Mono typography
@@ -106,7 +106,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">
-                LocalStamp
+                LocalStamp.co
               </h1>
               <p className="text-[10px] font-mono text-muted-foreground leading-tight">
                 Add time & location to your photos
