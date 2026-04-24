@@ -148,9 +148,9 @@ export default function PhotoCard({
             </span>
           )}
           {photo.metadata.locationName && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] font-mono text-muted-foreground">
-              <MapPin className="w-2.5 h-2.5" />
-              {photo.metadata.locationName}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] font-mono text-muted-foreground max-w-[160px]" title={photo.metadata.locationName}>
+              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{photo.metadata.locationName}</span>
             </span>
           )}
           {photo.metadata.latitude != null && photo.metadata.longitude != null && !photo.metadata.locationName && (

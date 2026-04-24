@@ -1,6 +1,6 @@
 /**
- * Home Page — "Precision Lens" Photo Timestamp Overlay
- * 
+ * Home Page — "Precision Lens" LocalStamp.co
+ *
  * Design: Clean technical photography tool aesthetic
  * - DM Sans + JetBrains Mono typography
  * - Teal action color on white base
@@ -13,10 +13,67 @@ import PhotoGrid from "@/components/PhotoGrid";
 import StampSettings from "@/components/StampSettings";
 import { usePhotoProcessor } from "@/hooks/usePhotoProcessor";
 import { motion } from "framer-motion";
-import { Camera, Shield, Zap, MapPin } from "lucide-react";
+import { Camera, Shield, Zap, MapPin, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
-const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663413541485/GP5xNfQSgz4WCJZTUfbtgr/hero-camera-lens-9L9t4qkYMXBBBHdBMxsrDi.webp";
-const EMPTY_STATE_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663413541485/GP5xNfQSgz4WCJZTUfbtgr/empty-state-illustration-iqYHZxUE4rD2NYSRoDgqa5.webp";
+/** Inline SVG aperture illustration for empty state */
+function ApertureIllustration({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 120 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle
+        cx="60"
+        cy="60"
+        r="56"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        opacity="0.15"
+      />
+      <circle
+        cx="60"
+        cy="60"
+        r="42"
+        stroke="currentColor"
+        strokeWidth="1"
+        opacity="0.2"
+      />
+      <circle
+        cx="60"
+        cy="60"
+        r="28"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        opacity="0.25"
+      />
+      {/* Aperture blades */}
+      {[0, 60, 120, 180, 240, 300].map(angle => (
+        <line
+          key={angle}
+          x1="60"
+          y1="60"
+          x2={60 + 42 * Math.cos((angle * Math.PI) / 180)}
+          y2={60 + 42 * Math.sin((angle * Math.PI) / 180)}
+          stroke="currentColor"
+          strokeWidth="1"
+          opacity="0.12"
+        />
+      ))}
+      <circle
+        cx="60"
+        cy="60"
+        r="14"
+        stroke="currentColor"
+        strokeWidth="2"
+        opacity="0.3"
+      />
+      <circle cx="60" cy="60" r="4" fill="currentColor" opacity="0.15" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const {
@@ -26,7 +83,6 @@ export default function Home() {
     isProcessing,
     isDownloading,
     addPhotos,
-    reprocessAll,
     removePhoto,
     clearAll,
     handleDownloadAll,
@@ -36,6 +92,7 @@ export default function Home() {
     totalCount,
   } = usePhotoProcessor();
 
+  const { theme, toggleTheme } = useTheme();
   const hasPhotos = photos.length > 0;
 
   return (
@@ -49,22 +106,35 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">
-                Photo Timestamp
+                LocalStamp.co
               </h1>
               <p className="text-[10px] font-mono text-muted-foreground leading-tight">
-                EXIF Metadata Overlay Tool
+                Add time & location to your photos
               </p>
             </div>
           </div>
 
-          {hasPhotos && (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-[11px] font-mono text-muted-foreground">
-              <div className={`w-1.5 h-1.5 rounded-full ${isProcessing ? "bg-amber-500 animate-pulse" : doneCount === totalCount ? "bg-emerald-500" : "bg-primary"}`} />
-              {isProcessing
-                ? `Processing ${doneCount}/${totalCount}`
-                : `${doneCount} ready${errorCount > 0 ? ` · ${errorCount} errors` : ""}`}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {hasPhotos && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-[11px] font-mono text-muted-foreground">
+                <div
+                  className={`w-1.5 h-1.5 rounded-full ${isProcessing ? "bg-amber-500 animate-pulse" : doneCount === totalCount ? "bg-emerald-500" : "bg-primary"}`}
+                />
+                {isProcessing
+                  ? `Processing ${doneCount}/${totalCount}`
+                  : `${doneCount} ready${errorCount > 0 ? ` · ${errorCount} errors` : ""}`}
+              </div>
+            )}
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200"
+                aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+              >
+                {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -72,14 +142,15 @@ export default function Home() {
         {/* Hero section — only shown when no photos */}
         {!hasPhotos && (
           <section className="relative overflow-hidden border-b">
-            {/* Background image with overlay */}
-            <div className="absolute inset-0">
-              <img
-                src={HERO_IMAGE}
-                alt=""
-                className="w-full h-full object-cover"
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background">
+              <div
+                className="absolute inset-0 opacity-[0.03]"
+                style={{
+                  backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+                  backgroundSize: "24px 24px",
+                }}
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
             </div>
 
             <div className="relative container py-14 sm:py-20 lg:py-24">
@@ -89,11 +160,6 @@ export default function Home() {
                 transition={{ duration: 0.6, ease: "easeOut" }}
                 className="max-w-2xl"
               >
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-5">
-                  <Shield className="w-3 h-3" />
-                  100% Client-Side Processing
-                </div>
-
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight leading-[1.1]">
                   Stamp your photos
                   <br />
@@ -101,8 +167,9 @@ export default function Home() {
                 </h2>
 
                 <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-lg leading-relaxed">
-                  Upload photos, automatically read EXIF metadata and GPS coordinates, 
-                  and overlay formatted timestamps. Download all processed images instantly.
+                  Drop in your photos to automatically read the date, time, and
+                  GPS details. Add clean, readable stamps in seconds, then
+                  download everything at once.
                 </p>
 
                 {/* Feature pills */}
@@ -110,7 +177,6 @@ export default function Home() {
                   {[
                     { icon: Zap, label: "Instant Processing" },
                     { icon: MapPin, label: "GPS Location Lookup" },
-                    { icon: Shield, label: "No Server Upload" },
                   ].map(({ icon: Icon, label }) => (
                     <div
                       key={label}
@@ -128,6 +194,17 @@ export default function Home() {
 
         {/* Main workspace */}
         <section className="container py-8 space-y-6">
+          {/* Privacy notice */}
+          <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-start gap-2.5">
+              <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-sm sm:text-[15px] font-medium text-foreground leading-relaxed">
+                Photos are processed entirely in your browser. Nothing is
+                uploaded to any server.
+              </p>
+            </div>
+          </div>
+
           {/* Upload zone */}
           <UploadZone
             onFiles={addPhotos}
@@ -140,8 +217,6 @@ export default function Home() {
             <StampSettings
               options={stampOptions}
               onChange={setStampOptions}
-              onReprocess={reprocessAll}
-              hasPhotos={hasPhotos}
               isProcessing={isProcessing}
             />
           )}
@@ -154,11 +229,7 @@ export default function Home() {
               transition={{ delay: 0.3, duration: 0.5 }}
               className="flex flex-col items-center py-6"
             >
-              <img
-                src={EMPTY_STATE_IMAGE}
-                alt="Camera aperture illustration"
-                className="w-36 h-36 opacity-15"
-              />
+              <ApertureIllustration className="w-36 h-36 text-muted-foreground" />
               <p className="mt-3 text-sm text-muted-foreground font-mono">
                 Upload photos to get started
               </p>
@@ -213,6 +284,31 @@ export default function Home() {
             </motion.div>
           )}
 
+          {/* EXIF explainer — shown only in empty state */}
+          {!hasPhotos && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.45 }}
+              className="max-w-3xl mx-auto"
+            >
+              <div className="rounded-xl border bg-card p-5 sm:p-6">
+                <p className="text-[11px] uppercase tracking-widest text-primary font-mono mb-2">
+                  EXIF 101
+                </p>
+                <h4 className="text-base sm:text-lg font-semibold text-foreground mb-2">
+                  What is EXIF metadata?
+                </h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  EXIF metadata is information saved by your camera when a photo
+                  is taken—such as date, time, camera settings, and sometimes
+                  GPS coordinates. This app reads that metadata to place
+                  accurate time and location stamps on your photos.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           {/* Photo grid */}
           <PhotoGrid
             photos={photos}
@@ -230,12 +326,9 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-6 mt-auto">
-        <div className="container flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
-            Photos are processed entirely in your browser. Nothing is uploaded to any server.
-          </p>
+        <div className="container flex items-center justify-center sm:justify-end gap-3">
           <p className="text-xs text-muted-foreground font-mono">
-            Powered by EXIF.js & OpenStreetMap Nominatim
+            Powered by exifr & OpenStreetMap Nominatim · © Arrizon.Dev 2026
           </p>
         </div>
       </footer>
