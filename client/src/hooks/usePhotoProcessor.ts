@@ -1,9 +1,14 @@
 /**
  * usePhotoProcessor — manages the full lifecycle of photo processing
- * Upload → EXIF read → GPS reverse geocode → Canvas stamp → Ready to download
+ * Upload → HEIC decode (if needed) → EXIF read → GPS reverse geocode → Canvas stamp → Ready to download
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  getRenderableBlob,
+  isHeicImage,
+  isSupportedImageFile,
+} from "@/lib/heicSupport";
 import {
   DEFAULT_STAMP_OPTIONS,
   downloadAllAsZip,
@@ -29,6 +34,27 @@ export function usePhotoProcessor() {
       );
     },
     []
+  );
+
+  /**
+   * HEIC can't be rendered by anything but Safari, so decode it to a JPEG
+   * before the rest of the pipeline runs. Doing it up front also means the
+   * card preview shows the photo instead of a broken image, and a decode
+   * failure is reported against that photo rather than the whole batch.
+   */
+  const prepareForRender = useCallback(
+    async (photo: ProcessedPhoto) => {
+      if (!(await isHeicImage(photo.originalFile))) return;
+
+      updatePhoto(photo.id, { status: "converting" });
+      const renderable = await getRenderableBlob(photo.originalFile);
+      if (renderable === photo.originalFile) return;
+
+      const previewUrl = URL.createObjectURL(renderable);
+      updatePhoto(photo.id, { originalUrl: previewUrl });
+      URL.revokeObjectURL(photo.originalUrl);
+    },
+    [updatePhoto]
   );
 
   const processPhoto = useCallback(
@@ -95,7 +121,7 @@ export function usePhotoProcessor() {
 
   const addPhotos = useCallback(
     async (files: File[]) => {
-      const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+      const imageFiles = files.filter(isSupportedImageFile);
       if (imageFiles.length === 0) return;
 
       const newPhotos: ProcessedPhoto[] = imageFiles.map((file) => {
@@ -120,9 +146,24 @@ export function usePhotoProcessor() {
       setPhotos((prev) => [...prev, ...newPhotos]);
       setIsProcessing(true);
 
-      // Step 1: Read EXIF for all photos in parallel
+      // Step 1: Decode formats the canvas can't read (HEIC). Sequential — a
+      // single wasm decoder does the work, so parallel calls only pile up memory.
+      const readyPhotos: ProcessedPhoto[] = [];
+      for (const photo of newPhotos) {
+        try {
+          await prepareForRender(photo);
+          readyPhotos.push(photo);
+        } catch (err) {
+          updatePhoto(photo.id, {
+            status: "error",
+            error: err instanceof Error ? err.message : "Could not read photo",
+          });
+        }
+      }
+
+      // Step 2: Read EXIF for all photos in parallel
       const metadataResults = await Promise.all(
-        newPhotos.map(async (photo) => {
+        readyPhotos.map(async (photo) => {
           updatePhoto(photo.id, { status: "reading" });
           const metadata = await readExifData(photo.originalFile);
           updatePhoto(photo.id, { metadata });
@@ -130,7 +171,7 @@ export function usePhotoProcessor() {
         })
       );
 
-      // Step 2: Split into GPS (needs sequential geocoding) and non-GPS (can parallelize)
+      // Step 3: Split into GPS (needs sequential geocoding) and non-GPS (can parallelize)
       const withGps = metadataResults.filter(
         ({ metadata }) => metadata.latitude != null && metadata.longitude != null
       );
@@ -156,7 +197,7 @@ export function usePhotoProcessor() {
       await Promise.all([nonGpsPromise, gpsPromise]);
       setIsProcessing(false);
     },
-    [updatePhoto, stampOnly, stampOptions]
+    [updatePhoto, prepareForRender, stampOnly, stampOptions]
   );
 
   const reprocessAll = useCallback(async () => {

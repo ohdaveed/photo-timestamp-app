@@ -13,6 +13,12 @@ interface UploadZoneProps {
   hasPhotos: boolean;
 }
 
+/**
+ * Extensions are listed alongside `image/*` because Windows and some Android
+ * builds report no MIME type for HEIC, which hides those files in the picker.
+ */
+const ACCEPTED_FILE_TYPES = "image/*,.heic,.heif,.hif";
+
 export default function UploadZone({ onFiles, isProcessing, hasPhotos }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +85,7 @@ export default function UploadZone({ onFiles, isProcessing, hasPhotos }: UploadZ
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept={ACCEPTED_FILE_TYPES}
           multiple
           className="hidden"
           onChange={handleChange}
@@ -168,7 +174,7 @@ export default function UploadZone({ onFiles, isProcessing, hasPhotos }: UploadZ
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept={ACCEPTED_FILE_TYPES}
           multiple
           className="hidden"
           onChange={handleChange}

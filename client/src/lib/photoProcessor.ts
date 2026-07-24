@@ -5,9 +5,16 @@
  * reverse-geocodes GPS coordinates via OpenStreetMap Nominatim,
  * and overlays a formatted timestamp + location on each image
  * using the HTML Canvas API. Everything runs client-side.
+ *
+ * HEIC/HEIF photos take a detour on the way in and out — see ./heicSupport.
  */
 
 import exifr from "exifr";
+import {
+  extractHeicExifBlock,
+  getRenderableBlob,
+  isHeicImage,
+} from "./heicSupport";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -26,7 +33,14 @@ export interface ProcessedPhoto {
   processedUrl: string | null;
   processedBlob: Blob | null;
   metadata: PhotoMetadata;
-  status: "pending" | "reading" | "geocoding" | "stamping" | "done" | "error";
+  status:
+    | "pending"
+    | "converting"
+    | "reading"
+    | "geocoding"
+    | "stamping"
+    | "done"
+    | "error";
   error?: string;
 }
 
@@ -60,57 +74,86 @@ export const DEFAULT_STAMP_OPTIONS: StampOptions = {
 
 // ─── EXIF Reading ────────────────────────────────────────────────
 
-export async function readExifData(file: File): Promise<PhotoMetadata> {
+const EXIF_TAGS = [
+  "DateTimeOriginal",
+  "CreateDate",
+  "ModifyDate",
+  "GPSLatitude",
+  "GPSLatitudeRef",
+  "GPSLongitude",
+  "GPSLongitudeRef",
+  "Make",
+  "Model",
+  "latitude",
+  "longitude",
+];
+
+const EMPTY_METADATA: PhotoMetadata = {
+  dateTime: null,
+  latitude: null,
+  longitude: null,
+  locationName: null,
+  cameraModel: null,
+};
+
+/** Anything exifr hands back that we can actually stamp onto a photo. */
+function hasUsableExif(exif: Record<string, unknown> | null): boolean {
+  if (!exif) return false;
+  return Boolean(
+    exif.DateTimeOriginal ||
+      exif.CreateDate ||
+      exif.ModifyDate ||
+      exif.latitude != null
+  );
+}
+
+async function parseExif(
+  input: File | Uint8Array
+): Promise<Record<string, unknown> | null> {
   try {
-    const exif = await exifr.parse(file, {
-      gps: true,
-      pick: [
-        "DateTimeOriginal",
-        "CreateDate",
-        "ModifyDate",
-        "GPSLatitude",
-        "GPSLongitude",
-        "Make",
-        "Model",
-        "latitude",
-        "longitude",
-      ],
-    });
-
-    if (!exif) {
-      return {
-        dateTime: null,
-        latitude: null,
-        longitude: null,
-        locationName: null,
-        cameraModel: null,
-      };
-    }
-
-    const dateTime =
-      exif.DateTimeOriginal || exif.CreateDate || exif.ModifyDate || null;
-    const latitude = exif.latitude ?? null;
-    const longitude = exif.longitude ?? null;
-    const cameraModel = exif.Model
-      ? `${exif.Make ? exif.Make + " " : ""}${exif.Model}`
-      : null;
-
-    return {
-      dateTime: dateTime instanceof Date ? dateTime : dateTime ? new Date(dateTime) : null,
-      latitude,
-      longitude,
-      locationName: null,
-      cameraModel,
-    };
+    return (await exifr.parse(input, { gps: true, pick: EXIF_TAGS })) ?? null;
   } catch {
-    return {
-      dateTime: null,
-      latitude: null,
-      longitude: null,
-      locationName: null,
-      cameraModel: null,
-    };
+    return null;
   }
+}
+
+export async function readExifData(file: File): Promise<PhotoMetadata> {
+  let exif = await parseExif(file);
+
+  // exifr only accepts a HEIC container that advertises the "heic" compatible
+  // brand, so for the rest we locate the EXIF block ourselves and parse that.
+  if (!hasUsableExif(exif) && (await isHeicImage(file))) {
+    const exifBlock = await extractHeicExifBlock(file);
+    if (exifBlock) {
+      const fromBlock = await parseExif(exifBlock);
+      if (hasUsableExif(fromBlock)) exif = fromBlock;
+    }
+  }
+
+  if (!exif) {
+    return { ...EMPTY_METADATA };
+  }
+
+  const dateTime =
+    exif.DateTimeOriginal || exif.CreateDate || exif.ModifyDate || null;
+  const latitude = (exif.latitude as number | undefined) ?? null;
+  const longitude = (exif.longitude as number | undefined) ?? null;
+  const cameraModel = exif.Model
+    ? `${exif.Make ? exif.Make + " " : ""}${exif.Model}`
+    : null;
+
+  return {
+    dateTime:
+      dateTime instanceof Date
+        ? dateTime
+        : dateTime
+          ? new Date(dateTime as string)
+          : null,
+    latitude,
+    longitude,
+    locationName: null,
+    cameraModel,
+  };
 }
 
 // ─── Reverse Geocoding ──────────────────────────────────────────
@@ -214,14 +257,21 @@ function formatCoordinates(lat: number, lon: number): string {
 
 // ─── Canvas Timestamp Overlay ───────────────────────────────────
 
+/** The format every stamped photo is exported as. */
+const OUTPUT_MIME_TYPE = "image/jpeg";
+const OUTPUT_QUALITY = 0.92;
+
 export async function stampPhoto(
   file: File,
   metadata: PhotoMetadata,
   options: StampOptions
 ): Promise<Blob> {
+  // HEIC can't be drawn onto a canvas directly, so draw a decoded copy instead.
+  const source = await getRenderableBlob(file);
+
   return new Promise((resolve, reject) => {
     const img = new Image();
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(source);
 
     img.onload = () => {
       try {
@@ -333,8 +383,8 @@ export async function stampPhoto(
             if (blob) resolve(blob);
             else reject(new Error("Canvas export failed"));
           },
-          "image/jpeg",
-          0.92
+          OUTPUT_MIME_TYPE,
+          OUTPUT_QUALITY
         );
       } catch (err) {
         URL.revokeObjectURL(url);
@@ -374,6 +424,17 @@ function roundRect(
 
 // ─── Bulk Download ──────────────────────────────────────────────
 
+/**
+ * Stamped photos are always exported as JPEG, so the download keeps the
+ * original name but takes its extension from the exported blob — a HEIC input
+ * must not come back as a ".heic" file that no viewer can open.
+ */
+function downloadFileName(photo: ProcessedPhoto): string {
+  const baseName = photo.originalFile.name.replace(/\.[^.]+$/, "") || "photo";
+  const ext = photo.processedBlob?.type === "image/png" ? "png" : "jpg";
+  return `${baseName}_timestamped.${ext}`;
+}
+
 export async function downloadAllAsZip(
   photos: ProcessedPhoto[]
 ): Promise<void> {
@@ -386,9 +447,7 @@ export async function downloadAllAsZip(
   );
 
   for (const photo of donePhotos) {
-    const ext = photo.originalFile.name.replace(/.*\./, "") || "jpg";
-    const baseName = photo.originalFile.name.replace(/\.[^.]+$/, "");
-    zip.file(`${baseName}_timestamped.${ext}`, photo.processedBlob!);
+    zip.file(downloadFileName(photo), photo.processedBlob!);
   }
 
   const content = await zip.generateAsync({ type: "blob" });
@@ -397,12 +456,10 @@ export async function downloadAllAsZip(
 
 export function downloadSingle(photo: ProcessedPhoto): void {
   if (!photo.processedBlob) return;
-  const ext = photo.originalFile.name.replace(/.*\./, "") || "jpg";
-  const baseName = photo.originalFile.name.replace(/\.[^.]+$/, "");
   const url = URL.createObjectURL(photo.processedBlob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${baseName}_timestamped.${ext}`;
+  a.download = downloadFileName(photo);
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
