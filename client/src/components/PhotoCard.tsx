@@ -36,6 +36,7 @@ export default function PhotoCard({
   const isDone = photo.status === "done";
   const isError = photo.status === "error";
   const isWorking =
+    photo.status === "converting" ||
     photo.status === "reading" ||
     photo.status === "geocoding" ||
     photo.status === "stamping";
@@ -46,6 +47,7 @@ export default function PhotoCard({
 
   const statusLabel = {
     pending: "Waiting...",
+    converting: "Decoding HEIC...",
     reading: "Reading EXIF...",
     geocoding: "Finding location...",
     stamping: "Adding timestamp...",
