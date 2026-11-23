@@ -163,7 +163,7 @@ export default function UploadZone({ onFiles, isProcessing, hasPhotos }: UploadZ
                     Drop photos here or click to browse
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Supports JPEG, PNG, HEIC, and other image formats with EXIF data
+                    Supports JPEG, PNG, HEIC, WebP, and other formats with EXIF data. Automatically converted to WebP.
                   </p>
                 </div>
               </motion.div>

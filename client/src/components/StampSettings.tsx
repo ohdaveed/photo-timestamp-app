@@ -131,8 +131,8 @@ export default function StampSettings({
                 </div>
               </div>
 
-              {/* Row 2: Time Format + Opacity */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Row 2: Time Format + Output Format + Opacity */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Time Format
@@ -149,6 +149,27 @@ export default function StampSettings({
                     <SelectContent>
                       <SelectItem value="12h">12-hour (AM/PM)</SelectItem>
                       <SelectItem value="24h">24-hour</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Output Format
+                  </Label>
+                  <Select
+                    value={options.outputFormat || "webp"}
+                    onValueChange={(v) =>
+                      update({ outputFormat: v as StampOptions["outputFormat"] })
+                    }
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="webp">WebP (Auto)</SelectItem>
+                      <SelectItem value="jpeg">JPEG</SelectItem>
+                      <SelectItem value="png">PNG</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

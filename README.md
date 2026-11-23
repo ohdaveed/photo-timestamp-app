@@ -8,6 +8,7 @@ A privacy-first web application that automatically reads EXIF metadata from your
 
 ## ✨ Features
 
+- **⚡ Auto WebP Image Conversion**: Automatically encodes stamped output images into optimized WebP format with optional JPEG and PNG export settings.
 - **🔒 Privacy-First**: All processing happens client-side. Your photos never leave your device.
 - **📅 EXIF Metadata Reading**: Automatically extracts date, time, GPS coordinates, and camera information from your photos.
 - **🌍 GPS Reverse Geocoding**: Converts GPS coordinates to human-readable location names (city, state, country) using OpenStreetMap Nominatim API.
@@ -113,7 +114,7 @@ pnpm start
 
 1. Click the upload zone or drag and drop photos directly onto the page
 2. Multiple photos can be uploaded simultaneously
-3. Supported formats: JPEG, PNG (any format with EXIF metadata)
+3. Supported formats: JPEG, PNG, HEIC, WebP, and other image formats with EXIF metadata. Stamped photos automatically export in optimized WebP format (or configurable JPEG/PNG).
 
 ### Customize Timestamp
 

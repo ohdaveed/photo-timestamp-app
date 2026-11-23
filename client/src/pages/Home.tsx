@@ -177,6 +177,7 @@ export default function Home() {
                   {[
                     { icon: Zap, label: "Instant Processing" },
                     { icon: MapPin, label: "GPS Location Lookup" },
+                    { icon: Camera, label: "Auto WebP Conversion" },
                   ].map(({ icon: Icon, label }) => (
                     <div
                       key={label}
