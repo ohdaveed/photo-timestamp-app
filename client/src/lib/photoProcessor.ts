@@ -56,6 +56,7 @@ export interface StampOptions {
   opacity: number;
   textColor: string;
   backgroundColor: string;
+  outputFormat: "webp" | "jpeg" | "png";
 }
 
 export const DEFAULT_STAMP_OPTIONS: StampOptions = {
@@ -70,6 +71,7 @@ export const DEFAULT_STAMP_OPTIONS: StampOptions = {
   opacity: 0.85,
   textColor: "#FFFFFF",
   backgroundColor: "#000000",
+  outputFormat: "webp",
 };
 
 // ─── EXIF Reading ────────────────────────────────────────────────
@@ -257,8 +259,12 @@ function formatCoordinates(lat: number, lon: number): string {
 
 // ─── Canvas Timestamp Overlay ───────────────────────────────────
 
-/** The format every stamped photo is exported as. */
-const OUTPUT_MIME_TYPE = "image/jpeg";
+const FORMAT_MIME_TYPES: Record<NonNullable<StampOptions["outputFormat"]>, string> = {
+  webp: "image/webp",
+  jpeg: "image/jpeg",
+  png: "image/png",
+};
+
 const OUTPUT_QUALITY = 0.92;
 
 export async function stampPhoto(
@@ -268,6 +274,8 @@ export async function stampPhoto(
 ): Promise<Blob> {
   // HEIC can't be drawn onto a canvas directly, so draw a decoded copy instead.
   const source = await getRenderableBlob(file);
+  const mimeType = FORMAT_MIME_TYPES[options.outputFormat || "webp"] || "image/webp";
+  const quality = mimeType === "image/png" ? undefined : OUTPUT_QUALITY;
 
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -380,11 +388,24 @@ export async function stampPhoto(
         canvas.toBlob(
           (blob) => {
             URL.revokeObjectURL(url);
-            if (blob) resolve(blob);
-            else reject(new Error("Canvas export failed"));
+            if (blob) {
+              resolve(blob);
+            } else if (mimeType !== "image/jpeg") {
+              // Fallback to jpeg if browser canvas toBlob doesn't support the format
+              canvas.toBlob(
+                (fallbackBlob) => {
+                  if (fallbackBlob) resolve(fallbackBlob);
+                  else reject(new Error("Canvas export failed"));
+                },
+                "image/jpeg",
+                OUTPUT_QUALITY
+              );
+            } else {
+              reject(new Error("Canvas export failed"));
+            }
           },
-          OUTPUT_MIME_TYPE,
-          OUTPUT_QUALITY
+          mimeType,
+          quality
         );
       } catch (err) {
         URL.revokeObjectURL(url);
@@ -425,13 +446,19 @@ function roundRect(
 // ─── Bulk Download ──────────────────────────────────────────────
 
 /**
- * Stamped photos are always exported as JPEG, so the download keeps the
- * original name but takes its extension from the exported blob — a HEIC input
- * must not come back as a ".heic" file that no viewer can open.
+ * Stamped photos take their extension from the exported blob format (default WebP) —
+ * e.g., a HEIC or JPEG input will export as WebP (.webp) or the chosen format.
  */
-function downloadFileName(photo: ProcessedPhoto): string {
+export function getExportExtension(mimeType?: string): string {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "jpg";
+  if (mimeType === "image/webp") return "webp";
+  return "webp";
+}
+
+export function downloadFileName(photo: ProcessedPhoto): string {
   const baseName = photo.originalFile.name.replace(/\.[^.]+$/, "") || "photo";
-  const ext = photo.processedBlob?.type === "image/png" ? "png" : "jpg";
+  const ext = getExportExtension(photo.processedBlob?.type);
   return `${baseName}_timestamped.${ext}`;
 }
 
